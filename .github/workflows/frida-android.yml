@@ -18,7 +18,7 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v4
 
-    # 2️⃣ Install system dependencies
+    # 2️⃣ Install dependencies
     - name: Install dependencies
       run: |
         sudo apt update
@@ -42,33 +42,33 @@ jobs:
         unzip -q android-ndk-${ANDROID_NDK_VERSION}-linux.zip
         echo "ANDROID_NDK_ROOT=$PWD/android-ndk-${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
 
-    # 5️⃣ Clone Frida (PINNED VERSION)
+    # 5️⃣ Clone Frida (OLD LAYOUT)
     - name: Clone Frida
       run: |
         git clone --branch ${FRIDA_VERSION} --recurse-submodules https://github.com/frida/frida.git
 
-    # 6️⃣ Clone strongR-frida patches
+    # 6️⃣ Clone strongR-frida-android
     - name: Clone strongR-frida-android
       run: |
         git clone https://github.com/0XMohomiester/strongR-frida-android
 
-    # 7️⃣ Debug layout (important)
+    # 7️⃣ Debug layout (for sanity)
     - name: Debug Frida layout
       run: |
         ls frida
-        ls frida/subprojects
+        ls frida/frida-core
 
-    # 8️⃣ Apply strongR patches (CORRECT PATH)
+    # 8️⃣ Apply strongR patches ✅ CORRECT PATH
     - name: Apply strongR patches
       run: |
         set -e
-        cd frida/subprojects/frida-core
-        git am ../../../strongR-frida-android/frida-core/*.patch
+        cd frida/frida-core
+        git am ../../strongR-frida-android/frida-core/*.patch
 
     # 9️⃣ Verify patches applied
     - name: Verify patches
       run: |
-        cd frida/subprojects/frida-core
+        cd frida/frida-core
         git log --oneline -5
 
     # 🔟 Build Frida Android ARM64
