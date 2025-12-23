@@ -42,42 +42,48 @@ jobs:
         unzip -q android-ndk-${ANDROID_NDK_VERSION}-linux.zip
         echo "ANDROID_NDK_ROOT=$PWD/android-ndk-${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
 
-    # 5️⃣ Clone Frida (OLD LAYOUT)
+    # 5️⃣ Configure git identity (🔥 REQUIRED)
+    - name: Configure git identity
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+
+    # 6️⃣ Clone Frida (classic layout)
     - name: Clone Frida
       run: |
         git clone --branch ${FRIDA_VERSION} --recurse-submodules https://github.com/frida/frida.git
 
-    # 6️⃣ Clone strongR-frida-android
+    # 7️⃣ Clone strongR-frida-android
     - name: Clone strongR-frida-android
       run: |
         git clone https://github.com/0XMohomiester/strongR-frida-android
 
-    # 7️⃣ Debug layout (for sanity)
+    # 8️⃣ Debug layout
     - name: Debug Frida layout
       run: |
         ls frida
         ls frida/frida-core
 
-    # 8️⃣ Apply strongR patches ✅ CORRECT PATH
+    # 9️⃣ Apply strongR patches
     - name: Apply strongR patches
       run: |
         set -e
         cd frida/frida-core
         git am ../../strongR-frida-android/frida-core/*.patch
 
-    # 9️⃣ Verify patches applied
+    # 🔟 Verify patches applied
     - name: Verify patches
       run: |
         cd frida/frida-core
         git log --oneline -5
 
-    # 🔟 Build Frida Android ARM64
+    # 1️⃣1️⃣ Build Frida Android ARM64
     - name: Build Frida Android ARM64
       run: |
         cd frida
         make core-android-arm64
 
-    # 1️⃣1️⃣ Upload artifacts
+    # 1️⃣2️⃣ Upload artifacts
     - name: Upload Frida binaries
       uses: actions/upload-artifact@v4
       with:
