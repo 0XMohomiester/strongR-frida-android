@@ -1,0 +1,90 @@
+name: Build Undetected Frida (Stealth) Android 
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    env:
+      ANDROID_NDK_VERSION: r26d
+      FRIDA_VERSION: 16.1.2
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          git curl unzip \
+          python3 python3-pip \
+          ninja-build pkg-config \
+          build-essential \
+          libglib2.0-dev \
+          libssl-dev
+
+    - name: Install Meson
+      run: |
+        pip3 install --upgrade meson
+
+    - name: Install Android NDK
+      run: |
+        curl -LO https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-linux.zip
+        unzip -q android-ndk-${ANDROID_NDK_VERSION}-linux.zip
+        echo "ANDROID_NDK_ROOT=$GITHUB_WORKSPACE/android-ndk-${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
+
+    - name: Configure git identity
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+
+    - name: Clone Frida
+      run: |
+        git clone --branch ${FRIDA_VERSION} --recurse-submodules https://github.com/frida/frida.git
+
+    - name: Clone strongR-frida-android
+      run: |
+        git clone https://github.com/0XMohomiester/strongR-frida-android
+
+    - name: Debug workspace
+      run: |
+        pwd
+        ls "$GITHUB_WORKSPACE"
+        ls "$GITHUB_WORKSPACE/frida"
+        ls "$GITHUB_WORKSPACE/strongR-frida-android"
+
+    - name: Apply strongR patches (ABSOLUTE PATHS)
+      run: |
+        set -e
+
+        FRIDA_CORE_PATH="$GITHUB_WORKSPACE/frida/frida-core"
+        PATCH_PATH="$GITHUB_WORKSPACE/strongR-frida-android/frida-core"
+
+        echo "[+] Frida core path: $FRIDA_CORE_PATH"
+        echo "[+] Patch path: $PATCH_PATH"
+
+        ls "$PATCH_PATH"
+
+        cd "$FRIDA_CORE_PATH"
+        git am "$PATCH_PATH"/*.patch
+
+    - name: Verify patches
+      run: |
+        cd "$GITHUB_WORKSPACE/frida/frida-core"
+        git log --oneline -5
+
+    - name: Build Frida Android ARM64
+      run: |
+        cd "$GITHUB_WORKSPACE/frida"
+        make core-android-arm64
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: undetected-frida-android-arm64
+        path: |
+          frida/build/frida-android-arm64/bin/frida-server
+          frida/build/frida-android-arm64/lib/frida-gadget.so
