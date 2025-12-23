@@ -1,0 +1,73 @@
+name: Build Undetected Frida Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    env:
+      ANDROID_NDK_VERSION: r26d
+
+    steps:
+    # 1️⃣ Checkout this repo
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    # 2️⃣ Install dependencies
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          python3 python3-pip \
+          git curl unzip \
+          ninja-build pkg-config \
+          build-essential \
+          libglib2.0-dev \
+          libssl-dev
+
+    # 3️⃣ Install Meson
+    - name: Install Meson
+      run: |
+        pip3 install meson
+
+    # 4️⃣ Download Android NDK
+    - name: Install Android NDK
+      run: |
+        curl -LO https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-linux.zip
+        unzip android-ndk-${ANDROID_NDK_VERSION}-linux.zip
+        echo "ANDROID_NDK_ROOT=$PWD/android-ndk-${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
+
+    # 5️⃣ Clone Frida source
+    - name: Clone Frida
+      run: |
+        git clone --recurse-submodules https://github.com/frida/frida.git
+
+    # 6️⃣ Clone strongR-frida patches
+    - name: Clone strongR patches
+      run: |
+        git clone https://github.com/0XMohomiester/strongR-frida-android
+
+    # 7️⃣ Apply patches
+    - name: Apply strongR patches
+      run: |
+        cd frida/frida-core
+        git am ../../strongR-frida-android/frida-core/*.patch
+
+    # 8️⃣ Build Frida (ARM64)
+    - name: Build Frida Android ARM64
+      run: |
+        cd frida
+        make core-android-arm64
+
+    # 9️⃣ Upload artifacts
+    - name: Upload Frida binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: undetected-frida-android
+        path: |
+          frida/build/frida-android-arm64/bin/frida-server
+          frida/build/frida-android-arm64/lib/frida-gadget.so
