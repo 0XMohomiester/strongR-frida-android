@@ -9,7 +9,7 @@ jobs:
 
     env:
       ANDROID_NDK_VERSION: r26d
-      FRIDA_VERSION: 16.6.1
+      FRIDA_VERSION: 16.1.2
 
     steps:
     - name: Checkout repo
